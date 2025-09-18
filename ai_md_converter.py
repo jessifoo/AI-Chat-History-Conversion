@@ -362,11 +362,11 @@ def merge_markdown_files(output_dir: str, max_files: int = 200):
 
         with open(merged_path, 'w', encoding='utf-8') as merged_file:
             merged_file.write(f"Chats: {start_date} to {end_date}\n\n")
-            for file in group:
+            for idx, file in enumerate(group):
                 with open(file, 'r', encoding='utf-8') as f:
                     merged_file.write(f.read())
+                if idx < len(group) - 1:
                     merged_file.write("\n\n---\n\n")
-
         print(f"  ✔ Merged: {os.path.basename(merged_path)} ({len(group)} chats)")
 
     print(f"\n✅ Merging complete. Output in: {merged_dir}\n")
