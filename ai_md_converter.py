@@ -1,6 +1,7 @@
 import os
 import json
 import re
+from datetime import datetime
 from typing import Dict, List, Any, Optional
 
 def safe_filename(title: str) -> str:
@@ -375,7 +376,7 @@ def merge_markdown_files(output_dir: str, max_files: int = 200):
 def main():
     """
     Main function to run the converter
-    Usage: python ai_md_converter.py [json_file] [output_directory] [--merge]
+    Usage: python ai_json_converter.py [json_file] [output_directory] [--merge]
     """
     import sys
 
@@ -385,22 +386,14 @@ def main():
     output_dir = None
     do_merge = False
 
-    # Parse command line arguments
-
-    if len(sys.argv) > 1:
-        json_file = sys.argv[1]
-    if len(sys.argv) > 2:
-        output_dir = sys.argv[2]
-    if len(sys.argv) > 3 and sys.argv[3] == "--merge":
-        do_merge = True
-
-    # Create converter and run
+    do_merge = "--merge" in sys.argv[1:]
 
     converter = AIJSONConverter()
-    converter.convert_to_markdown(json_file, output_dir)
+    resolved_output_dir = output_dir or os.path.dirname(os.path.abspath(json_file))
+    converter.convert_to_markdown(json_file, resolved_output_dir)
 
     if do_merge:
-        merge_markdown_files(output_dir or ".", max_files=200)
+        merge_markdown_files(resolved_output_dir, max_files=200)
 
 if __name__ == "__main__":
     main()
