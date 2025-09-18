@@ -1,6 +1,7 @@
 import os
 import json
 import re
+from datetime import datetime
 from typing import Dict, List, Any, Optional
 
 def safe_filename(title: str) -> str:
@@ -324,26 +325,75 @@ class AIJSONConverter:
         except Exception as e:
             print(f"An unexpected error occurred: {e}")
 
+
+def extract_date_prefix(filename: str) -> datetime:
+    match = re.match(r"(\d{4}-\d{2}-\d{2})", os.path.basename(filename))
+    if match:
+        try:
+            return datetime.strptime(match.group(1), "%Y-%m-%d")
+        except ValueError:
+            return datetime.min
+    return datetime.min
+
+def merge_markdown_files(output_dir: str, max_files: int = 200):
+    print("\n[+] Merging markdown files in:", output_dir)
+    all_md_files = [
+        os.path.join(output_dir, f)
+        for f in os.listdir(output_dir)
+        if f.endswith(".md")
+    ]
+    total = len(all_md_files)
+    if total == 0:
+        print("[!] No markdown files found to merge.")
+        return
+
+    group_size = max(1, math.ceil(total / max_files))
+    all_md_files.sort(key=extract_date_prefix)
+    total_groups = math.ceil(total / group_size)
+
+    merged_dir = os.path.join(output_dir, "merged")
+    os.makedirs(merged_dir, exist_ok=True)
+
+    for i in range(total_groups):
+        group = all_md_files[i * group_size : (i + 1) * group_size]
+        dates = [extract_date_prefix(f) for f in group]
+        start_date = min(dates).strftime("%Y-%m-%d") if dates else "undated"
+        end_date = max(dates).strftime("%Y-%m-%d") if dates else "undated"
+        merged_path = os.path.join(merged_dir, f"{start_date}_to_{end_date}.md")
+
+        with open(merged_path, 'w', encoding='utf-8') as merged_file:
+            merged_file.write(f"Chats: {start_date} to {end_date}\n\n")
+            for idx, file in enumerate(group):
+                with open(file, 'r', encoding='utf-8') as f:
+                    merged_file.write(f.read())
+                if idx < len(group) - 1:
+                    merged_file.write("\n\n---\n\n")
+        print(f"  ✔ Merged: {os.path.basename(merged_path)} ({len(group)} chats)")
+
+    print(f"\n✅ Merging complete. Output in: {merged_dir}\n")
+
+
 def main():
     """
     Main function to run the converter
-    Usage: python ai_json_converter.py [json_file] [output_directory]
+    Usage: python ai_json_converter.py [json_file] [output_directory] [--merge]
     """
     import sys
-    
+
     # Default values
+
     json_file = "conversations.json"
     output_dir = None
-    
-    # Parse command line arguments
-    if len(sys.argv) > 1:
-        json_file = sys.argv[1]
-    if len(sys.argv) > 2:
-        output_dir = sys.argv[2]
-    
-    # Create converter and run
+    do_merge = False
+
+    do_merge = "--merge" in sys.argv[1:]
+
     converter = AIJSONConverter()
-    converter.convert_to_markdown(json_file, output_dir)
+    resolved_output_dir = output_dir or os.path.dirname(os.path.abspath(json_file))
+    converter.convert_to_markdown(json_file, resolved_output_dir)
+
+    if do_merge:
+        merge_markdown_files(resolved_output_dir, max_files=200)
 
 if __name__ == "__main__":
     main()
