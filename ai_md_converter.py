@@ -375,7 +375,7 @@ def merge_markdown_files(output_dir: str, max_files: int = 200):
 def main():
     """
     Main function to run the converter
-    Usage: python ai_json_converter.py [json_file] [output_directory] [--merge]
+    Usage: python ai_md_converter.py [json_file] [output_directory] [--merge]
     """
     import sys
 
